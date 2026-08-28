@@ -34,6 +34,7 @@ class CDKGoatStack(Stack):
             container_security_group=network_construct.container_sg,
             load_balancer_security_group=network_construct.lb_sg,
             db=db_construct.db_cluster,
+            db_app_secret=db_construct.db_app_secret,
             storage_bucket=storage_construct.storage_bucket,
         )
 
