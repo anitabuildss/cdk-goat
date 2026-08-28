@@ -63,7 +63,9 @@ class NetworkConstruct(Construct):
         )
 
         db_sg.connections.allow_from(
-            ec2.Peer.ipv4(cidr_ip=ALLOWED_CIDR),
+            ec2.Peer.security_group_id(
+                security_group_id=container_sg.security_group_id
+            ),
             port_range=ec2.Port.tcp(5432),
             description="Allow traffic to database from application containers",
         )

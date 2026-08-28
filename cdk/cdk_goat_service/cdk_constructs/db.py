@@ -60,9 +60,11 @@ class DBConstruct(Construct):
             instance_type=ec2.InstanceType.of(
                 ec2.InstanceClass.BURSTABLE3, ec2.InstanceSize.MICRO
             ),
-            vpc_subnets=ec2.SubnetSelection(subnet_type=ec2.SubnetType.PUBLIC),
+            vpc_subnets=ec2.SubnetSelection(
+                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
+            ),
             vpc=vpc,
-            publicly_accessible=True,
+            publicly_accessible=False,
             allow_major_version_upgrade=False,
             auto_minor_version_upgrade=False,
             security_groups=[security_group],
