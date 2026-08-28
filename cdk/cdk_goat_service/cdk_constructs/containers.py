@@ -26,18 +26,13 @@ class ContainersConstruct(Construct):
         container_security_group: ec2.ISecurityGroup,
         load_balancer_security_group: ec2.ISecurityGroup,
         db: rds.DatabaseInstance,
+        db_app_secret: sm.ISecret,
         storage_bucket: s3.IBucket,
         *,
         prefix=None,
     ):
         """Construct initialization."""
         super().__init__(scope, id)
-
-        db_secret = sm.Secret.from_secret_name_v2(
-            self,
-            "DBSecret",
-            db.secret.secret_name,
-        )
 
         ecr_repository = ecr.Repository(
             self,
@@ -99,7 +94,8 @@ class ContainersConstruct(Construct):
             },
         )
 
-        db_secret.grant_read(ecs_task_role)
+        # Grant the task role access to the application secret only (not the master secret)
+        db_app_secret.grant_read(ecs_task_role)
         storage_bucket.grant_read_write(ecs_task_role)
 
         ecs_task_execution_role = iam.Role(
@@ -142,23 +138,23 @@ class ContainersConstruct(Construct):
             port_mappings=[ecs.PortMapping(container_port=8000, host_port=8000)],
             secrets={
                 "DB_NAME": ecs.Secret.from_secrets_manager(
-                    db_secret,
+                    db_app_secret,
                     "dbname",
                 ),
                 "DB_USER": ecs.Secret.from_secrets_manager(
-                    db_secret,
+                    db_app_secret,
                     "username",
                 ),
                 "DB_PASSWORD": ecs.Secret.from_secrets_manager(
-                    db_secret,
+                    db_app_secret,
                     "password",
                 ),
                 "DB_HOST": ecs.Secret.from_secrets_manager(
-                    db_secret,
+                    db_app_secret,
                     "host",
                 ),
                 "DB_PORT": ecs.Secret.from_secrets_manager(
-                    db_secret,
+                    db_app_secret,
                     "port",
                 ),
             },

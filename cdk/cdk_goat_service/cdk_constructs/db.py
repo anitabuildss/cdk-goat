@@ -29,9 +29,9 @@ class DBConstruct(Construct):
         """Construct initialization."""
         super().__init__(scope, id)
 
-        db_secret = sme.Secret(
+        db_master_secret = sme.Secret(
             self,
-            "DBSecret",
+            "DBMasterSecret",
             generate_secret_string=sme.SecretStringGenerator(
                 exclude_punctuation=True,
                 include_space=False,
@@ -54,7 +54,7 @@ class DBConstruct(Construct):
             iam_authentication=False,
             database_name=CLUSTER_DB_NAME,
             credentials=rds.Credentials.from_secret(
-                secret=db_secret, username="master"
+                secret=db_master_secret, username="master"
             ),
             backup_retention=cdk.Duration.days(7),
             instance_type=ec2.InstanceType.of(
@@ -70,8 +70,29 @@ class DBConstruct(Construct):
             removal_policy=cdk.RemovalPolicy.DESTROY,
         )
 
+        # Create a separate application-level secret with limited privileges
+        # This secret should be used by the application instead of the master credential
+        db_app_secret = sme.Secret(
+            self,
+            "DBAppSecret",
+            generate_secret_string=sme.SecretStringGenerator(
+                exclude_punctuation=True,
+                include_space=False,
+                secret_string_template=json.dumps(
+                    {
+                        "username": "app_user",
+                        "dbname": CLUSTER_DB_NAME,
+                        "host": db.instance_endpoint.hostname,
+                        "port": db.instance_endpoint.port,
+                    }
+                ),
+                generate_string_key="password",
+            ),
+        )
+
         cdk.CfnOutput(self, "DBInstanceEndpoint", value=db.instance_endpoint.hostname)
         cdk.CfnOutput(self, "DBName", value=CLUSTER_DB_NAME)
 
         self.db_cluster = db
-        self.db_secret = db_secret
+        self.db_master_secret = db_master_secret
+        self.db_app_secret = db_app_secret
